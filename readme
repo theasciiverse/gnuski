@@ -1,0 +1,30 @@
+GNUSki 0.3 README
+Copyright (C) 2007 Rudolf Olah
+Licensed under the GNU GPL
+
+== What is it? ==
+A clone of Skifree which is a Windows game from the early to mid '90s.
+It currently uses NCurses for graphics.
+
+== What do you do? ==
+Race downhill avoiding obstacles and the dreaded Abominable Snow Man.
+
+== Controls ==
+
+Left, H, h  - lean to the left
+Right, L, l - lean to the right
+Up, K, k    - slow down
+Down, J, j  - speed up
+Space       - trick (not available just yet)
+
+== For Programmers ==
+
+=== Libraries required ===
+ncurses (compiled against ncurses-5.6 though any version should work fine)
+
+=== Compiling ===
+To compile GNUSki, run this command in the console:
+
+  c++ -O2 -o gnuski main.c -lncurses
+
+Or you can just type in `make` which will use the Makefile to compile GNUSki.

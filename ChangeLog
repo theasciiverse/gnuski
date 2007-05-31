@@ -1,0 +1,26 @@
+GNUSki 0.3
+
+2007-05-30  Rudolf Olah  <omouse@gmail.com>
+	* object.c: Coloured trees green.	
+	* main.c: Decreased refresh rate to counter-act the weird
+	attron/attroff cursor crap.
+
+2007-05-29  Rudolf Olah  <omouse@gmail.com>
+	* main.c: Proper scrolling. Generates objects as they pass from
+	view.
+
+2007-05-28  Rudolf Olah  <omouse@gmail.com>
+	* object.c: Facing is specified when drawing objects (there are a
+	lot of objects that have the same facing so there's no need for
+	the struct to store that info).
+	* main.c: Added the proper controls and screen-scrolling.
+	* main.c: Using a refresh rate now and a separate variable to
+	control speed. Also keeping track of distance.	
+
+2007-05-25  Rudolf Olah  <omouse@gmail.com>
+	* main.c: Converted everything to C.
+	* main.c: GNUSki is starting from version 0.1 all over again.
+
+2006-04-19  Rudolf Olah  <omouse@gmail.com>
+	* draw.h: Changed the commands around a bit. The clean-up has
+	begun.
