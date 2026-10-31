@@ -130,11 +130,14 @@ collision (struct Object player, struct Object target)
 {
   switch (target.type)
     {
-    case tree:
-      return player.y == target.y+2 && player.x == target.x+1;
+    /* the skier is two cells wide: either one can hit */
+    case tree:     /* only the trunk, at the bottom middle */
+      return player.y == target.y+2
+	&& (player.x == target.x+1 || player.x+1 == target.x+1);
       break;
     case rock:
-      return player.y == target.y && player.x == target.x;
+      return player.y == target.y
+	&& (player.x == target.x || player.x+1 == target.x);
       break;
     case none: default:
       return 0;

@@ -25,13 +25,24 @@
 #include <ncurses.h>
 
 #define MAX_OBJECTS 300
-#define REFRESH_RATE 5000
+#define FRAME_MS 100            /* one step of the slope every 100 ms */
+
+/* Milliseconds from a fixed point, for the frame clock and the timer */
+static long
+nowMs (void)
+{
+  struct timespec t;
+  clock_gettime (CLOCK_MONOTONIC, &t);
+  return t.tv_sec * 1000L + t.tv_nsec / 1000000;
+}
 
 int main (int argc, char* argv[])
 {
   struct Object player, objects[MAX_OBJECTS];
-  unsigned int c = 0, i = 0, maxRows, maxCols, ticker = 0, score = 0,
+  unsigned int i = 0, step, maxRows, maxCols, score = 0,
     distance = 0, speed = 1, style = 0;
+  int c = 0;
+  long start, next, left, elapsed;
   enum mode {loop, lose, win} state = loop;
   char facing[2] = {'s', 'n'};   /* Player facing, object facing */
 
@@ -47,28 +58,55 @@ int main (int argc, char* argv[])
   /* Create objects */
   player = makeObject (skier, maxCols/2, maxRows/2);
   for (i = 0; i < MAX_OBJECTS; i++)
-    objects[i] = makeObject (rand () % 3+1,
-			     rand () % maxCols,
-			     rand () % (maxRows*4 + maxRows/2));
+    {
+      objects[i] = makeObject (rand () % 3+1,
+			       rand () % maxCols,
+			       rand () % (maxRows*4 + maxRows/2));
+      /* keep the start clear: nothing on or just below the skier */
+      if (objects[i].y >= player.y - 3 && objects[i].y <= player.y + 6
+	  && objects[i].x >= player.x - 4 && objects[i].x <= player.x + 4)
+	objects[i].y += maxRows;
+    }
 
   /* Menu will go here */
   printw ("GNUSki 0.3 - Skifree clone using NCurses, licensed under the GNU GPL.\n");
   printw ("Press any key to start...");
   refresh ();
   getch ();
-  nodelay (stdscr, true); /* No waiting for input from the user */
+  start = nowMs ();
+  next = start;
   while (state == loop)
     {
+      /* Wait for a key until the next frame is due */
+      left = next - nowMs ();
+      timeout (left > 0 ? (int)left : 0);
+      c = getch ();
       switch (c)
 	{
 	case KEY_LEFT: case 'h': case 'H':
-	  facing[0] = '4';
-	  facing[1] = '2';
+	  if (facing[0] == '3')   /* from right back to straight down */
+	    {
+	      facing[0] = 's';
+	      facing[1] = 'n';
+	    }
+	  else
+	    {
+	      facing[0] = '4';
+	      facing[1] = '2';
+	    }
 	  break;
 
 	case KEY_RIGHT: case 'l': case 'L':
-	  facing[0] = '3';
-	  facing[1] = '1';
+	  if (facing[0] == '4')   /* from left back to straight down */
+	    {
+	      facing[0] = 's';
+	      facing[1] = 'n';
+	    }
+	  else
+	    {
+	      facing[0] = '3';
+	      facing[1] = '1';
+	    }
 	  break;
 
 	case KEY_UP: case 'k': case 'K':
@@ -86,35 +124,46 @@ int main (int argc, char* argv[])
 	  break;
 	}
 
-      if (ticker == REFRESH_RATE)
+      if (state == loop && nowMs () >= next)
 	{
+	  next += FRAME_MS;
+	  if (next < nowMs ())   /* fell behind (suspended?): don't race */
+	    next = nowMs () + FRAME_MS;
 	  clear ();
-	  ticker = 0;
 
-	  /* Check for collisions and draw the objects */
+	  /* Move the objects one cell at a time, checking for collisions
+	     at each, so nothing is skipped over at higher speeds; then
+	     draw them */
 	  for (i = 0; i < MAX_OBJECTS; i++)
 	    {
-	      if (objects[i].type != none && collision (player, objects[i]))
-		state = lose;
-	      moveObject (&objects[i], facing[1], speed);
+	      for (step = 0; step < speed; step++)
+		{
+		  if (objects[i].type != none
+		      && collision (player, objects[i]))
+		    state = lose;
+		  moveObject (&objects[i], facing[1], 1);
+		}
+	      /* new objects come in below the screen, wide enough to
+		 drift into view whichever way the skier is heading */
 	      if (objects[i].y < 0)
-		setPosition (&objects[i], rand () % (maxCols*2),
+		setPosition (&objects[i],
+			     (int)(rand () % (maxCols + 2*maxRows))
+			     - (int)maxRows,
 			     rand () % maxRows + maxRows);
-	      if (objects[i].x > 2 && objects[i].x < maxCols-2
-		  && objects[i].y > 2 && objects[i].y < maxRows-2)
+	      if (objects[i].x > 2 && objects[i].x < (int)maxCols-2
+		  && objects[i].y > 2 && objects[i].y < (int)maxRows-2)
 		draw (objects[i], facing[1]);
 	    }
 	  draw (player, facing[0]);
-	  printw ("Time:   0:00:00.00\n");
+	  elapsed = (nowMs () - start) / 10;   /* hundredths */
+	  printw ("Time:   %ld:%02ld:%02ld.%02ld\n", elapsed / 360000,
+		  elapsed / 6000 % 60, elapsed / 100 % 60, elapsed % 100);
 	  printw ("Dist:     %02im\n", distance);
 	  printw ("Speed:    %02im/s\n", speed);
 	  printw ("Style:    %4i", style);
 	  distance += speed;
+	  refresh ();
 	}
-      refresh ();
-      if (speed > 0)
-	ticker++;
-      c = getch ();
     }
   clear ();
   if (state == win)
@@ -124,7 +173,9 @@ int main (int argc, char* argv[])
   printw ("Your score was %i. You traveled %im.\nPress any key to continue...",
 	  distance+style, distance);
   refresh ();
-  nodelay (stdscr, false);
+  napms (800);    /* a key still held from skiing must not skip this */
+  flushinp ();
+  timeout (-1);
   getch ();
 
   endwin ();
