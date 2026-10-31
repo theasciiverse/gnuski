@@ -1,0 +1,34 @@
+# System packages (.deb, .rpm, .apk, Arch) for gnuski, built by nfpm from
+# the same static Linux build as the av archive. The release workflow sets
+# VERSION, RELEASE (our packaging release) and ARCH (amd64 or arm64).
+#
+# No .desktop file on purpose: av is the one place titles are started from,
+# so Asciiverse packages never add menu entries (asciiverse/CLAUDE.md).
+name: gnuski
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+release: ${RELEASE}
+section: games
+priority: optional
+maintainer: Asciiverse <packages@asciiverse.sh>
+vendor: Asciiverse
+homepage: https://github.com/theasciiverse/gnuski
+license: GPL-2.0-or-later
+description: |
+  Ski downhill in the terminal, dodging trees and rocks.
+  A small curses game in the spirit of SkiFree.
+  GNUSki 0.3 by Rudolf Olah, with fixes, packaged by Asciiverse.
+contents:
+  - src: gnuski
+    dst: /usr/bin/gnuski
+    file_info: { mode: 0755 }
+  - src: GPL.txt
+    dst: /usr/share/doc/gnuski/copyright
+    file_info: { mode: 0644 }
+  - src: readme
+    dst: /usr/share/doc/gnuski/README
+    file_info: { mode: 0644 }
+  - src: PATCHES.md
+    dst: /usr/share/doc/gnuski/PATCHES.md
+    file_info: { mode: 0644 }
