@@ -49,4 +49,6 @@ void draw (struct Object o, char facing);
 /* Checks for collision between a player object and a target */
 int collision (struct Object player, struct Object target);
 
+void setupColors ();
+
 #endif
